@@ -6,26 +6,23 @@ using UnityEngine;
 
 public class TargetFollow : MonoBehaviour
 {
-    public static string ReadFile(string dPath)
+    static string ReadFile(string dPath)
     {
         string[] fileEntries = Directory.GetFiles(dPath);
-        string coordStr = "";
+        string coordStr = "0.45;0.45;0.55;0.55";
         try
         {
-            if (fileEntries.Length == 0)
-            {
-                string newestFilePath = fileEntries[0];
-                coordStr = System.IO.File.ReadAllText(@newestFilePath);// in format min_x;min_y;max_x;max_y.
-            }
+            string coordFilePath = fileEntries[0];
+            coordStr = System.IO.File.ReadAllText(@coordFilePath);   // in format min_x;min_y;max_x;max_y.
         }
         catch (Exception e)
         {
-            Console.WriteLine("{0} Exception caught.", e);
+            print(e);
         }
         return coordStr;
     }
 
-    public static Vector3 GetFacePos(string dPath)
+    static Vector3 GetFacePos(string dPath)
     {
         float targetX = 0f;
         float targetY = 0f;
@@ -38,66 +35,76 @@ public class TargetFollow : MonoBehaviour
             float min_x = float.Parse(boxCoords[0]);
             float min_y = float.Parse(boxCoords[1]);
             float max_x = float.Parse(boxCoords[2]);
-            float max_y = float.Parse(boxCoords[4]);
-
+            float max_y = float.Parse(boxCoords[3]);
+            
             // count the middle point of the bounding box for target position
-            targetX = (max_x - min_x) / 2;
-            targetY = (max_y - min_y) / 2;
+            targetX = min_x + (max_x - min_x) / 2;
+            targetY = min_y + (max_y - min_y) / 2;
 
         }
         catch (Exception e)
         {
-            Console.WriteLine("{0} Exception caught.", e);
+            print(e);
         }
         return ScaleCoordsToPos(targetX, targetY);
     }
 
-    public static Vector3 ScaleCoordsToPos(float x, float y)
+    static Vector3 ScaleCoordsToPos(float x, float y)
     {
-        float sceneWidth = 7.0f;
+        // calibration parameters
+        float sceneWidth = 6.0f;
         float sceneHeight = 3.0f;
-        
+
+        // Find the center for the scene coordinate system
         var camera = GameObject.Find("Camera");
-        Vector3 cameraCenter = new Vector3(0f, 1.2f, 4f);
+        Vector3 cameraCenter = camera.transform.position;
 
-        if (camera)
-        {
-            cameraCenter = camera.transform.position;
-        }
-        else
-        {
-            Console.WriteLine("No camera found.");
-        }
-
+        // the center of the input coordinate system
         float coordCenter = 0.5f;
 
+        // Count the desired distance from the cameracenter for the target
         float xOffset = (x - coordCenter) * sceneWidth;
         float sceneX = cameraCenter.x + xOffset;
 
         float yOffset = (y - coordCenter) * sceneHeight;
-        float sceneY = cameraCenter.y + yOffset;
+        float sceneY = cameraCenter.y - yOffset;
 
-        float sceneZ = 4.0f;
+        float sceneZ = 16.0f;
 
         return new Vector3(sceneX, sceneY, sceneZ);
 
     }
 
-    Vector3 tempPos;
-    // Start is called before the first frame update
-    void Start()
-    {
-    }
+    IEnumerator currentMoveCoroutine;
+    Vector3 destination;
 
     // Update is called once per frame
     void Update()
     {
-        string targetDirectory = "/*/"; // replace with directory path for face detection results.
+        string targetDirectory = @"E:\Opinnot\Kandi\Avatar\AvatarFace\Face render\Test"; // replace with directory path for face detection results.
         Vector3 facePos = GetFacePos(targetDirectory);
-        tempPos = transform.position;
-        tempPos.x -= 0.01f;
-        transform.position = tempPos;
+        
+        if (facePos != destination) // new face coordinates received
+        {
+            destination = facePos;
+            // stop old coroutine if not yet completed
+            if (currentMoveCoroutine != null)
+            {
+                StopCoroutine(currentMoveCoroutine);
+            }
+            currentMoveCoroutine = MoveTarget(destination, 4);
+            StartCoroutine(currentMoveCoroutine);
+        }
     }
 
+    // coroutine to move the target smoothly towards the face position
+    IEnumerator MoveTarget(Vector3 destination, float speed)
+    {
+        while (transform.position != destination)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, destination, speed * Time.deltaTime);
+            yield return null;
+        }
+    }
     
 }
