@@ -6,16 +6,16 @@ public class JawMove : MonoBehaviour
 {
     static bool isSpeaking()
     {
-        return true; // modify to apply jaw movement only when 
+        return true; // modify to apply jaw movement only when the avatar is speaking.
     }
 
-    float HEAD_JAW_Y_OFFSET = -2.7f;
+    // Calibration parameters:
+    float HEAD_JAW_Y_OFFSET = -3.0f; 
     float JAW_SPEED = 15;
 
-    //bool jawMovingUp = false;
     GameObject headTarget;
     Vector3 headAimPos;
-    IEnumerator currentJawCoroutine = null; // helper variable to avoid conflicting coroutines
+    IEnumerator currentJawCoroutine = null;
 
     void Start()
     {
@@ -47,7 +47,6 @@ public class JawMove : MonoBehaviour
             headAimPos = headTarget.transform.position;
             float middleY = headAimPos.y + HEAD_JAW_Y_OFFSET;
             transform.position = new Vector3(headAimPos.x, middleY + Mathf.Sin(Time.time*JAW_SPEED), headAimPos.z);
-            print(transform.position);
             yield return new WaitForEndOfFrame();
         }
     }

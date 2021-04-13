@@ -4,16 +4,66 @@ using System.IO;
 using System;
 using UnityEngine;
 
+/*
+ * The program expects the input coordinates to be in format min_x;min_y;max_x;max_y,
+ * where the values are decimal numbers between 0.0 and 1.0. 
+ * 
+ * The directory for the input coordinate file is expected to have only the single text file for coordinates.
+ */
+
 public class TargetFollow : MonoBehaviour
 {
-    static string ReadFile(string dPath)
+    string TARGET_DIRECTORY = Path.Combine("FaceCoordinates");
+
+    // calibration parameters
+    float SCENE_WIDTH = 6.0f;
+    float SCENE_HEIGHT = 3.0f;
+    float DEFAULT_Z_VALUE = 16.0f;
+    float TARGET_MOVE_SPEED = 3;
+
+    // the center of the input coordinate system
+    float COORDINATE_CENTER = 0.5f;
+
+    IEnumerator currentMoveCoroutine;
+    Vector3 destination;
+
+
+    // Update is called once per frame
+    void Update()
+    {
+        Vector3 facePos = GetFacePos(TARGET_DIRECTORY);
+        
+        if (facePos != destination) // new face coordinates received
+        {
+            destination = facePos;
+            // stop old coroutine if not yet completed
+            if (currentMoveCoroutine != null)
+            {
+                StopCoroutine(currentMoveCoroutine);
+            }
+            currentMoveCoroutine = MoveTarget(destination, TARGET_MOVE_SPEED);
+            StartCoroutine(currentMoveCoroutine);
+        }
+    }
+
+    // coroutine to move the target smoothly towards the face position
+    private IEnumerator MoveTarget(Vector3 destination, float speed)
+    {
+        while (transform.position != destination)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, destination, speed * Time.deltaTime);
+            yield return null;
+        }
+    }
+
+    private static string ReadFile(string dPath)
     {
         string[] fileEntries = Directory.GetFiles(dPath);
         string coordStr = "0.45;0.45;0.55;0.55";
         try
         {
             string coordFilePath = fileEntries[0];
-            coordStr = System.IO.File.ReadAllText(@coordFilePath);   // in format min_x;min_y;max_x;max_y.
+            coordStr = System.IO.File.ReadAllText(@coordFilePath);   // in the format min_x;min_y;max_x;max_y.
         }
         catch (Exception e)
         {
@@ -22,11 +72,11 @@ public class TargetFollow : MonoBehaviour
         return coordStr;
     }
 
-    static Vector3 GetFacePos(string dPath)
+    private Vector3 GetFacePos(string dPath)
     {
         float targetX = 0f;
         float targetY = 0f;
-        
+
         try
         {
             string boundingBox = ReadFile(dPath);
@@ -36,7 +86,7 @@ public class TargetFollow : MonoBehaviour
             float min_y = float.Parse(boxCoords[1]);
             float max_x = float.Parse(boxCoords[2]);
             float max_y = float.Parse(boxCoords[3]);
-            
+
             // count the middle point of the bounding box for target position
             targetX = min_x + (max_x - min_x) / 2;
             targetY = min_y + (max_y - min_y) / 2;
@@ -49,62 +99,22 @@ public class TargetFollow : MonoBehaviour
         return ScaleCoordsToPos(targetX, targetY);
     }
 
-    static Vector3 ScaleCoordsToPos(float x, float y)
+    private Vector3 ScaleCoordsToPos(float x, float y)
     {
-        // calibration parameters
-        float sceneWidth = 6.0f;
-        float sceneHeight = 3.0f;
-
         // Find the center for the scene coordinate system
         var camera = GameObject.Find("Camera");
         Vector3 cameraCenter = camera.transform.position;
 
-        // the center of the input coordinate system
-        float coordCenter = 0.5f;
-
         // Count the desired distance from the cameracenter for the target
-        float xOffset = (x - coordCenter) * sceneWidth;
+        float xOffset = (x - COORDINATE_CENTER) * SCENE_WIDTH;
         float sceneX = cameraCenter.x + xOffset;
 
-        float yOffset = (y - coordCenter) * sceneHeight;
+        float yOffset = (y - COORDINATE_CENTER) * SCENE_HEIGHT;
         float sceneY = cameraCenter.y - yOffset;
 
-        float sceneZ = 16.0f;
+        float sceneZ = DEFAULT_Z_VALUE;
 
         return new Vector3(sceneX, sceneY, sceneZ);
-
     }
 
-    IEnumerator currentMoveCoroutine;
-    Vector3 destination;
-
-    // Update is called once per frame
-    void Update()
-    {
-        string targetDirectory = @"E:\Opinnot\Kandi\Avatar\AvatarFace\Face render\Test"; // replace with directory path for face detection results.
-        Vector3 facePos = GetFacePos(targetDirectory);
-        
-        if (facePos != destination) // new face coordinates received
-        {
-            destination = facePos;
-            // stop old coroutine if not yet completed
-            if (currentMoveCoroutine != null)
-            {
-                StopCoroutine(currentMoveCoroutine);
-            }
-            currentMoveCoroutine = MoveTarget(destination, 4);
-            StartCoroutine(currentMoveCoroutine);
-        }
-    }
-
-    // coroutine to move the target smoothly towards the face position
-    IEnumerator MoveTarget(Vector3 destination, float speed)
-    {
-        while (transform.position != destination)
-        {
-            transform.position = Vector3.MoveTowards(transform.position, destination, speed * Time.deltaTime);
-            yield return null;
-        }
-    }
-    
 }
