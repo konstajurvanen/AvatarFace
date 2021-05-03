@@ -1,18 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System;
 using UnityEngine;
+using static Util;
 
 public class JawMove : MonoBehaviour
 {
-    static bool isSpeaking()
-    {
-        return true; // modify to apply jaw movement only when the avatar is speaking.
-    }
-
+    
+    static string TARGET_DIRECTORY = Path.Combine("LipSync");
     // Calibration parameters:
-    float HEAD_JAW_Y_OFFSET = -3.0f; 
-    float JAW_SPEED = 15;
+    static float HEAD_JAW_Y_OFFSET = -3.0f; 
+    static float JAW_SPEED = 15;
 
+    // helpers to adapt to head rotations
     GameObject headTarget;
     Vector3 headAimPos;
     IEnumerator currentJawCoroutine = null;
@@ -21,6 +22,7 @@ public class JawMove : MonoBehaviour
     {
         headTarget = GameObject.Find("Target");
     }
+
     // Update is called once per frame
     void Update()
     {
@@ -46,8 +48,15 @@ public class JawMove : MonoBehaviour
         {
             headAimPos = headTarget.transform.position;
             float middleY = headAimPos.y + HEAD_JAW_Y_OFFSET;
-            transform.position = new Vector3(headAimPos.x, middleY + Mathf.Sin(Time.time*JAW_SPEED), headAimPos.z);
+            transform.position = new Vector3(0f, middleY + Mathf.Sin(Time.time*JAW_SPEED), headAimPos.z);
             yield return new WaitForEndOfFrame();
         }
+    }
+
+    static bool isSpeaking()
+    {
+        string inputStr = Util.ReadFile(TARGET_DIRECTORY);
+        bool speak = (inputStr == "1" || inputStr == "true");
+        return speak;
     }
 }
