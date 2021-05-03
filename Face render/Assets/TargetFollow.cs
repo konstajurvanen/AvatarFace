@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using UnityEngine;
+using static Util;
 
 /*
  * The program expects the input coordinates to be in format min_x;min_y;max_x;max_y,
@@ -13,16 +14,16 @@ using UnityEngine;
 
 public class TargetFollow : MonoBehaviour
 {
-    string TARGET_DIRECTORY = Path.Combine("FaceCoordinates");
+    static string TARGET_DIRECTORY = Path.Combine("FaceCoordinates");
 
     // calibration parameters
-    float SCENE_WIDTH = 6.0f;
-    float SCENE_HEIGHT = 3.0f;
-    float DEFAULT_Z_VALUE = 16.0f;
-    float TARGET_MOVE_SPEED = 3;
+    static float SCENE_WIDTH = 6.0f;
+    static float SCENE_HEIGHT = 3.0f;
+    static float DEFAULT_Z_VALUE = 16.0f;
+    static float TARGET_MOVE_SPEED = 3;
 
     // the center of the input coordinate system
-    float COORDINATE_CENTER = 0.5f;
+    static float COORDINATE_CENTER = 0.5f;
 
     IEnumerator currentMoveCoroutine;
     Vector3 destination;
@@ -31,7 +32,7 @@ public class TargetFollow : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Vector3 facePos = GetFacePos(TARGET_DIRECTORY);
+        Vector3 facePos = GetFacePos();
         
         if (facePos != destination) // new face coordinates received
         {
@@ -56,30 +57,14 @@ public class TargetFollow : MonoBehaviour
         }
     }
 
-    private static string ReadFile(string dPath)
-    {
-        string[] fileEntries = Directory.GetFiles(dPath);
-        string coordStr = "0.45;0.45;0.55;0.55";
-        try
-        {
-            string coordFilePath = fileEntries[0];
-            coordStr = System.IO.File.ReadAllText(@coordFilePath);   // in the format min_x;min_y;max_x;max_y.
-        }
-        catch (Exception e)
-        {
-            print(e);
-        }
-        return coordStr;
-    }
-
-    private Vector3 GetFacePos(string dPath)
+    private Vector3 GetFacePos()
     {
         float targetX = 0f;
         float targetY = 0f;
 
         try
         {
-            string boundingBox = ReadFile(dPath);
+            string boundingBox = Util.ReadFile(TARGET_DIRECTORY);
             string[] boxCoords = boundingBox.Split(';');
 
             float min_x = float.Parse(boxCoords[0]);
